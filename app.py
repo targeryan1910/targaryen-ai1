@@ -1,78 +1,43 @@
 import streamlit as st
 import google.generativeai as genai
 
-# ---------------- TASARIM ----------------
-st.set_page_config(page_title="House of Targaryen AI", page_icon="🐉")
-st.title("🐉 Targaryen Yapay Zekası")
-st.write("Dracarys! 🔥")
+st.set_page_config(page_title="Test Modu", page_icon="🔧")
+st.title("🔧 Arıza Tespit Modu")
+st.warning("Bu modda 'Secrets' kullanılmaz. Yeni anahtarını aşağıya elle yapıştır.")
 
-# ---------------- ŞİFRE KONTROLÜ ----------------
-api_key = None
-try:
-    if "GOOGLE_API_KEY" in st.secrets:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-except:
-    pass
+# 1. Anahtarı KESİN OLARAK elle alıyoruz (Hatayı bulmak için)
+api_key = st.text_input("Yeni aldığın API Anahtarını buraya yapıştır:", type="password")
 
-if not api_key:
-    with st.sidebar:
-        st.warning("⚠️ Gizli anahtar bulunamadı.")
-        api_key = st.text_input("API Anahtarını Elle Gir:", type="password")
-
-# --- DEBUG: HANGİ ŞİFREYİ KULLANIYORUZ? ---
 if api_key:
-    goster = api_key[:5] + "..." # Şifrenin başını gösterir
-    st.sidebar.caption(f"🔑 Aktif Anahtar: {goster}")
-    st.sidebar.info("Eğer bu eski şifrense, siteyi 'Reboot' etmelisin.")
-
-# ---------------- MODEL SEÇİMİ ----------------
-with st.sidebar:
-    st.header("⚙️ Ejderha Seçimi")
-    
-    # Hepsini kapsayan liste
-    aday_modeller = [
-        "gemini-1.5-flash",       # Standart Hesaplar (ÖNERİLEN)
-        "gemini-2.0-flash-exp",   # Öğrenci/Beta Hesapları
-        "gemini-1.5-pro",
-        "gemini-2.0-flash" 
-    ]
-    
-    secim_listesi = [f"Ejderha {i+1} ({m})" for i, m in enumerate(aday_modeller)]
-    secim = st.selectbox("Modeli Değiştir:", secim_listesi)
-    secilen_gercek_model = secim.split("(")[1].replace(")", "")
-
-# ---------------- SOHBET ----------------
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-if prompt := st.chat_input("Valar Morghulis..."):
-    if not api_key:
-        st.warning("Anahtar yok!")
-        st.stop()
-
-    st.chat_message("user").write(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
+    # 2. Anahtarı sisteme tanıt
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(secilen_gercek_model)
         
-        with st.chat_message("assistant"):
-            chat = model.start_chat(history=[])
-            response = chat.send_message(prompt)
-            st.markdown(response.text)
+        # 3. Bu anahtarın neleri çalıştırdığını listele (Kanıt görelim)
+        st.write("🔍 Bu anahtarın erişebildiği modeller aranıyor...")
+        modeller = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                modeller.append(m.name)
         
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
+        if not modeller:
+            st.error("❌ Bu anahtar HİÇBİR modele erişemiyor! Anahtar bozuk veya hesap kısıtlı.")
+        else:
+            st.success(f"✅ Bağlantı Başarılı! Erişim iznin olan {len(modeller)} model bulundu.")
+            st.json(modeller) # Listeyi ekrana basar
+
+            # 4. En garanti model ile test mesajı at
+            test_model = "models/gemini-1.5-flash"
+            if test_model in modeller:
+                st.info(f"🧪 {test_model} ile deneme yapılıyor...")
+                model = genai.GenerativeModel(test_model)
+                response = model.generate_content("Merhaba, çalışıyor musun?")
+                st.balloons()
+                st.success(f"CEVAP GELDİ: {response.text}")
+                st.write("🎉 SORUN ÇÖZÜLDÜ! Demek ki suçlu 'Secrets' kısmıymış.")
+            else:
+                st.warning("⚠️ Anahtar çalışıyor ama '1.5-flash' listende yok. Listeden başka model seçmelisin.")
 
     except Exception as e:
-        hata = str(e)
-        if "404" in hata:
-             st.error(f"❌ Bu model ({secilen_gercek_model}) senin şifrenle çalışmıyor. Lütfen sol menüden 'Ejderha 2'yi (gemini-2.0) seç.")
-        elif "429" in hata:
-            st.warning("⚠️ Ejderha yoruldu (Kota Doldu). Biraz bekle veya başka model seç.")
-        else:
-            st.error(f"Hata: {e}")
+        st.error(f"💥 ANAHTAR HATASI: {e}")
+        st.write("Hata mesajında '429' varsa kota bitik, '403' veya 'Key not valid' varsa anahtar yanlıştır.")
