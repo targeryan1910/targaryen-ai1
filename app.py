@@ -6,7 +6,7 @@ st.title("🔧 Arıza Tespit Modu")
 st.warning("Bu modda 'Secrets' kullanılmaz. Yeni anahtarını aşağıya elle yapıştır.")
 
 # 1. Anahtarı KESİN OLARAK elle alıyoruz (Hatayı bulmak için)
-api_key = st.text_input("Yeni aldığın API Anahtarını buraya yapıştır:", type="password")
+api_key = st.text_input("AIzaSyCWe6t77hGFVrWQ8HIPYMXz3c4oIVa4v-I", type="password")
 
 if api_key:
     # 2. Anahtarı sisteme tanıt
