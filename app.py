@@ -8,7 +8,7 @@ st.set_page_config(page_title="House of Targaryen AI", page_icon="🐉")
 st.title("🐉 Targaryen Yapay Zekası")
 st.write("Dracarys! 🔥")
 
-# ---------------- AKILLI ŞİFRE SİSTEMİ ----------------
+# ---------------- ŞİFREYİ ALMA ----------------
 api_key = None
 try:
     if "GOOGLE_API_KEY" in st.secrets:
@@ -25,43 +25,26 @@ if not api_key:
 
 with st.sidebar:
     st.header("⚙️ Ejderha Seçimi")
-    model_haritasi = {}
-    gorunen_isimler = []
+    
+    # --- BURAYI GENİŞLETTİK: Hem senin 2.0 modellerin hem de standart 1.5 var ---
+    # Senin anahtarın "gemini-2.0-flash-exp" ile çalışacak.
+    aday_modeller = [
+        "gemini-2.0-flash-exp",   # SENİN İÇİN (Hızlı ve Yeni)
+        "gemini-2.0-flash",       # SENİN İÇİN
+        "gemini-1.5-flash",       # Standart kullanıcılar için
+        "gemini-1.5-flash-001",
+        "gemini-1.5-pro"
+    ]
+    
+    secilen_gercek_model = "gemini-2.0-flash-exp" # Varsayılan olarak senin modelin
+    
+    # Kullanıcıya seçtirmece (İsterse değiştirebilsin)
+    secim_listesi = [f"Targaryen AI {i+1} ({m})" for i, m in enumerate(aday_modeller)]
+    secim = st.selectbox("Model Seç:", secim_listesi)
+    
+    # Seçilenin parantez içindeki gerçek ismini al
+    secilen_gercek_model = secim.split("(")[1].replace(")", "")
 
-    if api_key:
-        try:
-            genai.configure(api_key=api_key)
-            
-            # --- KRİTİK DÜZELTME: LİSTEYİ GENİŞLETTİK ---
-            # Senin anahtarın 2.0 görüyor, başkasınınki 1.5 görebilir.
-            # Hepsini ekliyoruz ki kim girerse girsin çalışsın.
-            aday_modeller = [
-                "gemini-2.0-flash-exp", # Senin anahtarın için
-                "gemini-2.0-flash",     # Senin anahtarın için
-                "gemini-1.5-flash",     # Standart anahtarlar için
-                "gemini-1.5-flash-001",
-                "gemini-1.5-pro"
-            ]
-            
-            sayac = 1
-            for m in aday_modeller:
-                 # Hata vermemesi için basit bir takma isim veriyoruz
-                 # Çalışıp çalışmadığını kod aşağıda deneyecek
-                 gercek_isim = m
-                 takma_isim = f"Targaryen AI {sayac}"
-                 model_haritasi[takma_isim] = gercek_isim
-                 gorunen_isimler.append(takma_isim)
-                 sayac += 1
-                 
-        except Exception as e:
-            st.error(f"Bağlantı hatası: {e}")
-
-    if gorunen_isimler:
-        secilen_takma_isim = st.selectbox("Hangi ejderha konuşsun?", gorunen_isimler)
-        secilen_gercek_model = model_haritasi[secilen_takma_isim]
-    else:
-        # Liste boşsa bile en azından senin modelini varsayılan yapalım
-        secilen_gercek_model = "gemini-2.0-flash-exp"
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -80,6 +63,7 @@ if prompt := st.chat_input("Valar Morghulis..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     try:
+        genai.configure(api_key=api_key)
         model = genai.GenerativeModel(secilen_gercek_model)
         
         with st.chat_message("assistant"):
@@ -91,12 +75,11 @@ if prompt := st.chat_input("Valar Morghulis..."):
         st.session_state.messages.append({"role": "assistant", "content": response.text})
 
     except Exception as e:
-        hata_mesaji = str(e)
-        # Hata Yönetimi:
-        if "404" in hata_mesaji:
-             st.error(f"⚠️ Bu ejderha ({secilen_gercek_model}) senin bölgende yaşamıyor. Lütfen yan menüden 'Targaryen AI 2' veya '3'ü seçip tekrar dene.")
-        elif "429" in hata_mesaji or "Quota" in hata_mesaji:
+        hata = str(e)
+        if "404" in hata:
+             st.error(f"⚠️ Seçilen model ({secilen_gercek_model}) anahtarınla uyumlu değil. Lütfen yan menüden başka bir model seç.")
+        elif "429" in hata or "Quota" in hata:
             st.warning("⚠️ **Ejderha Çok Yoruldu! (Hız Limiti)**")
             st.info("Çok fazla kişi yüklendiği için kısa bir mola verdik. 1-2 dakika bekle.")
         else:
-            st.error(f"Bir hata oluştu: {e}")
+            st.error(f"Hata: {e}")
