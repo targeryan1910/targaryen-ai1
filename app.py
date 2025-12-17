@@ -1,14 +1,12 @@
 import streamlit as st
 import google.generativeai as genai
-import time
 
-# ---------------- TASARIM AYARLARI ----------------
+# ---------------- TASARIM ----------------
 st.set_page_config(page_title="House of Targaryen AI", page_icon="🐉")
-
 st.title("🐉 Targaryen Yapay Zekası")
 st.write("Dracarys! 🔥")
 
-# ---------------- ŞİFREYİ ALMA ----------------
+# ---------------- ŞİFRE KONTROLÜ ----------------
 api_key = None
 try:
     if "GOOGLE_API_KEY" in st.secrets:
@@ -18,32 +16,32 @@ except:
 
 if not api_key:
     with st.sidebar:
-        st.warning("⚠️ Gizli anahtar bulunamadı (Bilgisayar modundasın).")
+        st.warning("⚠️ Gizli anahtar bulunamadı.")
         api_key = st.text_input("API Anahtarını Elle Gir:", type="password")
 
-# ------------------------------------------------------
+# --- DEBUG: HANGİ ŞİFREYİ KULLANIYORUZ? ---
+if api_key:
+    goster = api_key[:5] + "..." # Şifrenin başını gösterir
+    st.sidebar.caption(f"🔑 Aktif Anahtar: {goster}")
+    st.sidebar.info("Eğer bu eski şifrense, siteyi 'Reboot' etmelisin.")
 
+# ---------------- MODEL SEÇİMİ ----------------
 with st.sidebar:
     st.header("⚙️ Ejderha Seçimi")
     
-    # --- DÜZELTME BURADA: 1.5 FLASH'ı EN BAŞA ALDIK ---
-    # Artık site açılınca otomatik olarak en sağlam modeli seçecek.
+    # Hepsini kapsayan liste
     aday_modeller = [
-        "gemini-1.5-flash",       # EN SAĞLAM VE HIZLI (Varsayılan)
-        "gemini-1.5-pro",         # Daha zeki ama yavaş
-        "gemini-2.0-flash-exp",   # Deneysel (Hata verebilir)
+        "gemini-1.5-flash",       # Standart Hesaplar (ÖNERİLEN)
+        "gemini-2.0-flash-exp",   # Öğrenci/Beta Hesapları
+        "gemini-1.5-pro",
+        "gemini-2.0-flash" 
     ]
     
-    # Kullanıcıya seçtirmece
-    secim_listesi = [f"Targaryen AI {i+1} ({m})" for i, m in enumerate(aday_modeller)]
-    
-    # Kutucuk oluştur
-    secim = st.selectbox("Ejderha Modeli:", secim_listesi)
-    
-    # Seçilenin parantez içindeki gerçek ismini al (örn: gemini-1.5-flash)
+    secim_listesi = [f"Ejderha {i+1} ({m})" for i, m in enumerate(aday_modeller)]
+    secim = st.selectbox("Modeli Değiştir:", secim_listesi)
     secilen_gercek_model = secim.split("(")[1].replace(")", "")
 
-
+# ---------------- SOHBET ----------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -52,9 +50,8 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("Valar Morghulis..."):
-    
     if not api_key:
-        st.warning("Konuşmak için anahtar gerekli!")
+        st.warning("Anahtar yok!")
         st.stop()
 
     st.chat_message("user").write(prompt)
@@ -65,19 +62,17 @@ if prompt := st.chat_input("Valar Morghulis..."):
         model = genai.GenerativeModel(secilen_gercek_model)
         
         with st.chat_message("assistant"):
-            with st.spinner("Ejderha düşünüyor... 🔥"):
-                chat = model.start_chat(history=[])
-                response = chat.send_message(prompt)
-                st.markdown(response.text)
+            chat = model.start_chat(history=[])
+            response = chat.send_message(prompt)
+            st.markdown(response.text)
         
         st.session_state.messages.append({"role": "assistant", "content": response.text})
 
     except Exception as e:
         hata = str(e)
-        if "429" in hata or "Quota" in hata:
-            st.warning("⚠️ **Ejderha Çok Yoruldu! (Kota Doldu)**")
-            st.info("Şu an kullandığın modelin limiti doldu. Lütfen yan menüden 'Targaryen AI 2' (gemini-1.5-pro) seçeneğini seçip tekrar dene.")
-        elif "404" in hata:
-             st.error(f"⚠️ Bu model ({secilen_gercek_model}) senin anahtarınla çalışmıyor. Yan menüden diğer ejderhayı seç.")
+        if "404" in hata:
+             st.error(f"❌ Bu model ({secilen_gercek_model}) senin şifrenle çalışmıyor. Lütfen sol menüden 'Ejderha 2'yi (gemini-2.0) seç.")
+        elif "429" in hata:
+            st.warning("⚠️ Ejderha yoruldu (Kota Doldu). Biraz bekle veya başka model seç.")
         else:
-            st.error(f"Beklenmedik bir hata: {e}")
+            st.error(f"Hata: {e}")
