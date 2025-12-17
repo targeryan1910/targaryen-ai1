@@ -6,7 +6,7 @@ import time
 st.set_page_config(page_title="House of Targaryen AI", page_icon="🐉")
 
 st.title("🐉 Targaryen Yapay Zekası")
-st.write("Dracarys! 🔥 (Google Gemini 1.5 Altyapısı)")
+st.write("Dracarys! 🔥")
 
 # ---------------- AKILLI ŞİFRE SİSTEMİ ----------------
 api_key = None
@@ -31,15 +31,24 @@ with st.sidebar:
     if api_key:
         try:
             genai.configure(api_key=api_key)
-            sayac = 1
-            # Sadece en hızlı ve kotası bol olan Flash modelini zorlayalım
-            # Diğerleri hataya sebep olabilir.
-            aday_modeller = ["gemini-1.5-flash", "gemini-1.5-flash-001", "gemini-1.5-pro"]
             
+            # --- KRİTİK DÜZELTME: LİSTEYİ GENİŞLETTİK ---
+            # Senin anahtarın 2.0 görüyor, başkasınınki 1.5 görebilir.
+            # Hepsini ekliyoruz ki kim girerse girsin çalışsın.
+            aday_modeller = [
+                "gemini-2.0-flash-exp", # Senin anahtarın için
+                "gemini-2.0-flash",     # Senin anahtarın için
+                "gemini-1.5-flash",     # Standart anahtarlar için
+                "gemini-1.5-flash-001",
+                "gemini-1.5-pro"
+            ]
+            
+            sayac = 1
             for m in aday_modeller:
-                 # Manuel ekleme yapıyoruz ki kota sorunu olmasın
+                 # Hata vermemesi için basit bir takma isim veriyoruz
+                 # Çalışıp çalışmadığını kod aşağıda deneyecek
                  gercek_isim = m
-                 takma_isim = f"Targaryen AI {sayac} (Hızlı)"
+                 takma_isim = f"Targaryen AI {sayac}"
                  model_haritasi[takma_isim] = gercek_isim
                  gorunen_isimler.append(takma_isim)
                  sayac += 1
@@ -51,7 +60,8 @@ with st.sidebar:
         secilen_takma_isim = st.selectbox("Hangi ejderha konuşsun?", gorunen_isimler)
         secilen_gercek_model = model_haritasi[secilen_takma_isim]
     else:
-        secilen_gercek_model = "gemini-1.5-flash"
+        # Liste boşsa bile en azından senin modelini varsayılan yapalım
+        secilen_gercek_model = "gemini-2.0-flash-exp"
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -81,10 +91,12 @@ if prompt := st.chat_input("Valar Morghulis..."):
         st.session_state.messages.append({"role": "assistant", "content": response.text})
 
     except Exception as e:
-        # Hata mesajını analiz et
         hata_mesaji = str(e)
-        if "429" in hata_mesaji or "Quota" in hata_mesaji:
-            st.warning("⚠️ **Ejderha Çok Yoruldu! (Hız Limiti Aşıldı)**")
-            st.info("Çok fazla kişi aynı anda soru sorduğu için Google bizi kısa süreliğine durdurdu. Lütfen 1-2 dakika bekleyip tekrar dene. (Ücretsiz sürüm olduğu için bu normaldir).")
+        # Hata Yönetimi:
+        if "404" in hata_mesaji:
+             st.error(f"⚠️ Bu ejderha ({secilen_gercek_model}) senin bölgende yaşamıyor. Lütfen yan menüden 'Targaryen AI 2' veya '3'ü seçip tekrar dene.")
+        elif "429" in hata_mesaji or "Quota" in hata_mesaji:
+            st.warning("⚠️ **Ejderha Çok Yoruldu! (Hız Limiti)**")
+            st.info("Çok fazla kişi yüklendiği için kısa bir mola verdik. 1-2 dakika bekle.")
         else:
             st.error(f"Bir hata oluştu: {e}")
