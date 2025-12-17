@@ -26,23 +26,21 @@ if not api_key:
 with st.sidebar:
     st.header("⚙️ Ejderha Seçimi")
     
-    # --- BURAYI GENİŞLETTİK: Hem senin 2.0 modellerin hem de standart 1.5 var ---
-    # Senin anahtarın "gemini-2.0-flash-exp" ile çalışacak.
+    # --- DÜZELTME BURADA: 1.5 FLASH'ı EN BAŞA ALDIK ---
+    # Artık site açılınca otomatik olarak en sağlam modeli seçecek.
     aday_modeller = [
-        "gemini-2.0-flash-exp",   # SENİN İÇİN (Hızlı ve Yeni)
-        "gemini-2.0-flash",       # SENİN İÇİN
-        "gemini-1.5-flash",       # Standart kullanıcılar için
-        "gemini-1.5-flash-001",
-        "gemini-1.5-pro"
+        "gemini-1.5-flash",       # EN SAĞLAM VE HIZLI (Varsayılan)
+        "gemini-1.5-pro",         # Daha zeki ama yavaş
+        "gemini-2.0-flash-exp",   # Deneysel (Hata verebilir)
     ]
     
-    secilen_gercek_model = "gemini-2.0-flash-exp" # Varsayılan olarak senin modelin
-    
-    # Kullanıcıya seçtirmece (İsterse değiştirebilsin)
+    # Kullanıcıya seçtirmece
     secim_listesi = [f"Targaryen AI {i+1} ({m})" for i, m in enumerate(aday_modeller)]
-    secim = st.selectbox("Model Seç:", secim_listesi)
     
-    # Seçilenin parantez içindeki gerçek ismini al
+    # Kutucuk oluştur
+    secim = st.selectbox("Ejderha Modeli:", secim_listesi)
+    
+    # Seçilenin parantez içindeki gerçek ismini al (örn: gemini-1.5-flash)
     secilen_gercek_model = secim.split("(")[1].replace(")", "")
 
 
@@ -76,10 +74,10 @@ if prompt := st.chat_input("Valar Morghulis..."):
 
     except Exception as e:
         hata = str(e)
-        if "404" in hata:
-             st.error(f"⚠️ Seçilen model ({secilen_gercek_model}) anahtarınla uyumlu değil. Lütfen yan menüden başka bir model seç.")
-        elif "429" in hata or "Quota" in hata:
-            st.warning("⚠️ **Ejderha Çok Yoruldu! (Hız Limiti)**")
-            st.info("Çok fazla kişi yüklendiği için kısa bir mola verdik. 1-2 dakika bekle.")
+        if "429" in hata or "Quota" in hata:
+            st.warning("⚠️ **Ejderha Çok Yoruldu! (Kota Doldu)**")
+            st.info("Şu an kullandığın modelin limiti doldu. Lütfen yan menüden 'Targaryen AI 2' (gemini-1.5-pro) seçeneğini seçip tekrar dene.")
+        elif "404" in hata:
+             st.error(f"⚠️ Bu model ({secilen_gercek_model}) senin anahtarınla çalışmıyor. Yan menüden diğer ejderhayı seç.")
         else:
-            st.error(f"Hata: {e}")
+            st.error(f"Beklenmedik bir hata: {e}")
